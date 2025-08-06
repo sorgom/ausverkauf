@@ -1,0 +1,74 @@
+:root {
+    /* prevents from zoom by touch */
+    touch-action: pan-x pan-y;
+    height: 100%;
+    /* prevents from links being highlighted due to the above */
+    /* -webkit-tap-highlight-color: transparent; */
+
+    --minh: 1.6em;
+    --pd-a: 1em;
+    --pd-hd: 0.5em;
+    --mb-item: 0.5em;
+
+    --tc: black;
+    --tc-done: darkgreen;
+    --tc-out: darkred;
+    --tc-heading: #666;
+    --tc-link: blue;
+    --bg: white;
+    --bg-button: #EEE;
+    --bg-submit: #04AA6D;
+
+    --fs-main: 20pt;
+    --fs-medium: 16pt;
+    --fs-small: 12pt;
+    --lh-input: 24pt;
+}
+html {
+    /* fixes chrome on android text size */
+    text-size-adjust: none;
+    -moz-text-size-adjust: none;
+    -webkit-text-size-adjust: none;
+}
+
+
+@media (prefers-color-scheme: dark) {
+    html { filter: invert(100%); }
+    img { filter: invert(100%); }
+}
+
+* {
+    padding: 0;
+    font-family: sans-serif;
+    color: var(--tc);
+    box-sizing: border-box;
+}
+
+body {
+    /* font-size: var(--fs-main); */
+    background-color: var(--bg);
+    padding-bottom: 2.1em;
+    /* for grayscale testing */
+    /* filter: grayscale(100%); */
+}
+
+img {
+    width: 50%;
+    height: auto;
+    /* max-width: 100%;
+    max-height: 100vh;
+    zoom: normal; */
+    margin-bottom: 0.5em;
+}
+p {
+    white-space: pre-wrap;
+    margin:0;
+}
+
+@media (orientation: landscape) {
+}
+
+@media (orientation: portrait) {
+    * { font-stretch: condensed; }
+}
+

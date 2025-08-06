@@ -1,0 +1,3 @@
+[submodule "submodules/sompy"]
+	path = submodules/sompy
+	url = git@github.com:sorgom/sompy.git
