@@ -1,5 +1,9 @@
 *.jpg
 *.jpeg
+img
+site
+!site/*.css
+content.txt
 
 # Prerequisites
 *.d
