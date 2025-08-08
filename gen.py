@@ -1,3 +1,14 @@
+"""
+Generiere Verkaufs-Website
+
+Aufruf: this script [Optionen]
+Optionen:
+    -a Statistic aktualisieren
+    -G  <pixel> maximale Bildgröße
+        Default: 1000
+    -B  generiere Bilder ne
+
+"""
 from os import makedirs, chdir
 from os.path import exists, dirname, basename, isdir
 import json, re
@@ -97,10 +108,6 @@ class Gen(object):
     def link(name, desc):
         return f'<a href={name}.html>[ {desc} ]</a>'
     
-    @staticmethod
-    def imprint():
-        return f'<a class=link href=impressum.html>[ Impressum ]</a>'
-
     def parseContent(self):
         with open('content.txt', 'r') as fh:
             #   separate into categories and chapters
