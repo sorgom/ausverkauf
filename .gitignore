@@ -8,3 +8,5 @@ content.txt
 
 tmp_*
 tmp.*
+
+__pycache__

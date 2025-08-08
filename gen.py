@@ -51,14 +51,13 @@ class Gen(object):
         if not isdir(tDir): makedirs(tDir)
         for file in glob(f'{sDir}/*'):
             try:
-                # Open an image file
                 with Image.open(file) as img:
                     img = self.auto_rotate(img)
                     img.thumbnail((self.imgSize, self.imgSize))
                     img.save(f'site/{file}')
-                    print(f"Resized and saved: {file}")
+                    print('->', file)
             except Exception as e:
-                    print(f"Failed to process {file}: {e}")
+                print(f'failed: {file} ({e})')
          
     def scanImages(self):
         chdir('site')
@@ -127,12 +126,9 @@ class Gen(object):
         index = [self.link('index', 'Start')]
         for cat, name in self.cats:
             if self.chaps.get(cat):
-                print('OKI')
                 index.append(self.link(cat, name))
         index.append(self.link('impressum', 'Impressum'))
         self.template = self.template.replace('#DESC', self.desc).replace('#INDEX', ' '.join(index))
-        print(self.chaps)
-
 
     def genIndex(self):
         stats = {}
@@ -149,7 +145,7 @@ class Gen(object):
             last = stats.get(cat)
             if last is not None and num != last:
                 cdif = f' ({num - last:+d})'
-            desc = f'{name} {num}{cdif}'
+            desc = f'{name}: {num}{cdif}'
             cont.append(f'<li><a href={cat}.html>{desc}</a></li>')
         cont.append('</ul>')
         self.mkHtml('index', self.head, 'index', cont)
@@ -173,17 +169,21 @@ class Gen(object):
                 self.mkHtml(item, name, 'object', [desc, *imgs])     
 
             self.mkHtml(cat, ttl, 'category', cont)
-            print(*cont, sep='\n')
 
     def genImprint(self):
         self.mkHtml('impressum', 'Impressum', 'imprint', [self.para(self.imprint)])
 
+    def run(self):
+        if self.genImgs: self.genImages()
+        self.scanImages()
+        self.parseContent()
+        self.genIndex()
+        self.genChapters()
+        self.genImprint()
+
 if __name__ == "__main__":
+    import sompy
+    from docopts import docopts
     gen = Gen()
-    gen.mkHtml('wumpel', 'Wumpel', 'test', 'hello World')
+    gen.run()
     # gen.genImages()
-    gen.scanImages()
-    gen.parseContent()
-    gen.genIndex()
-    gen.genChapters()
-    gen.genImprint()
