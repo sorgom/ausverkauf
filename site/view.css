@@ -1,7 +1,7 @@
 :root {
     /* prevents from zoom by touch */
-    touch-action: pan-x pan-y;
-    height: 100%;
+    /* touch-action: pan-x pan-y;
+    height: 100%; */
     /* prevents from links being highlighted due to the above */
     /* -webkit-tap-highlight-color: transparent; */
 
@@ -26,9 +26,9 @@
 }
 html {
     /* fixes chrome on android text size */
-    text-size-adjust: none;
+    /* text-size-adjust: none;
     -moz-text-size-adjust: none;
-    -webkit-text-size-adjust: none;
+    -webkit-text-size-adjust: none; */
 }
 
 a {
@@ -40,14 +40,34 @@ h2 {
     padding-top: 0.2em;
 }
 
-body.index a {
+#index > a {
+    color: blue;
+    font-size: 120%;
+}
+li > a {
     color: blue;
     font-size: 150%;
+    line-height: 150%;
 }
+a.link {
+    color: blue;
+    display: block;
+    margin-top: 2em;
+}
+#index > a:hover, li > a:hover, a:hover > h2, a.link:hover
+{
+    text-decoration: underline;
+}
+
 
 @media (prefers-color-scheme: dark) {
     html { filter: invert(100%); }
-    img { filter: invert(100%); }
+    img  { filter: invert(100%); }
+    img, li > a, #index > a, a.link { 
+        color: lightblue;
+        filter: invert(100%); 
+    }
+    
 }
 
 * {

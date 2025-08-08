@@ -18,7 +18,7 @@ A simple Python Website builder
 ### source
 - source: content.txt
 - imprint
-- images
+- image folder: source images
 ### site
 - css file (to be stored)
 - html files (generated)
@@ -37,6 +37,10 @@ must show
     - show difference from last update
         - date time last
         - date time now
+
+## update difference
+option -u
+- compare update.json
 
 
 ## source syntax sample
@@ -67,13 +71,21 @@ Zustand:
 ```
 ## data model
 ```
-categories = [
+images = {
+    'schrankwand' : ['img/schrankwand]
+}
+cats = [
     ('elektro', 'Elektrogeräte')
+    ('moebel', 'Möbel')
 ]
-items = {
-    elektro : [
-        ('schrankwand', 'Schrankwandsystem', )
+chaps = {
+    'moebel' : [
+        ('schrankwand', 'Schrankwandsystem', text )
+        ('couch_rot', 'Couch rot Vintage', text )
     ]
 }
-
+stats = {
+    'moebel' : 4,
+    'elektro' : 2
+}
 ```

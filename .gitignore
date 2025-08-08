@@ -4,6 +4,7 @@ img
 site
 !site/*.css
 content.txt
+*.json
 
 tmp_*
 tmp.*
