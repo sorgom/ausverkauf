@@ -3,11 +3,11 @@ Generiere Verkaufs-Website
 
 Aufruf: this script [Optionen]
 Optionen:
-    -a Statistic aktualisieren
-    -G  <pixel> maximale Bildgröße
+    -s  Statistic aktualisieren
+    -m  <pixel> maximale Bildgröße
         Default: 1000
-    -B  generiere Bilder ne
-
+    -g  generiere Bilder neu
+    -h  diese Hilfe
 """
 from os import makedirs, chdir
 from os.path import exists, dirname, basename, isdir
@@ -21,16 +21,19 @@ import locale
 locale.setlocale(locale.LC_ALL, 'de_DE')
 
 class Gen(object):
-    def __init__(self, imgSize=1000, genImgs=False, genStats=False):
+    def __init__(self, imgSize=None, genImgs=False, genStats=False):
         chdir(dirname(__file__))
         with open('template.html') as fh:
             self.template = fh.read()
             fh.close()
         self.statsFile = 'stats.json'
         self.imprint = 'Kein Impressum vorhanden.'
-        self.imgSize = imgSize
+        self.imgSize = 1000
         self.genImgs = genImgs
         self.genStats = genStats
+        if imgSize is not None:
+            self.imgSize = int(imgSize)
+            self.genImgs = True
 
     def mkHtml(self, trg, ttl, bodyClass, content):
         with open(f'site/{trg}.html', 'w') as fh:
@@ -56,6 +59,7 @@ class Gen(object):
         return img
 
     def genImages(self):
+        print('gen images')
         sDir = 'img'
         tDir = 'site/img'
         if not isdir(sDir): return
@@ -169,10 +173,12 @@ class Gen(object):
             for item, name, desc in items:
                 imgs = self.images.get(item)
                 if not imgs: continue
-                cont.append(f'<a href={item}.html>')
-                cont.append(f'<h2>{name}</h2>')
-                cont.append(imgs[0])
-                cont.append('</a>')
+                cont.extend((
+                    f'<a href={item}.html>',
+                    f'<h2>{name}</h2>',
+                    imgs[0],
+                    '</a>'
+                ))
                 self.mkHtml(item, name, 'object', [desc, *imgs])     
 
             self.mkHtml(cat, ttl, 'category', cont)
@@ -191,6 +197,10 @@ class Gen(object):
 if __name__ == "__main__":
     import sompy
     from docopts import docopts
-    gen = Gen()
+    opts, args = docopts(__doc__)
+    gen = Gen(
+        imgSize  = opts.get('m'),
+        genImgs  = opts.get('g'),
+        genStats = opts.get('s')
+    )
     gen.run()
-    # gen.genImages()
