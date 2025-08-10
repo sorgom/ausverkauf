@@ -5,30 +5,15 @@
     /* prevents from links being highlighted due to the above */
     /* -webkit-tap-highlight-color: transparent; */
 
-    --minh: 1.6em;
-    --pd-a: 1em;
-    --pd-hd: 0.5em;
-    --mb-item: 0.5em;
-
     --tc: black;
-    --tc-done: darkgreen;
-    --tc-out: darkred;
-    --tc-heading: #666;
-    --tc-link: blue;
     --bg: white;
-    --bg-button: #EEE;
-    --bg-submit: #04AA6D;
-
-    --fs-main: 20pt;
-    --fs-medium: 16pt;
-    --fs-small: 12pt;
-    --lh-input: 24pt;
 }
 html {
     /* fixes chrome on android text size */
-    /* text-size-adjust: none;
+    text-size-adjust: none;
     -moz-text-size-adjust: none;
-    -webkit-text-size-adjust: none; */
+    -webkit-text-size-adjust: none;
+    font-size: 120%;
 }
 
 a {
@@ -49,21 +34,19 @@ li > a {
     font-size: 150%;
     line-height: 150%;
 }
-a.link {
-    color: blue;
-    display: block;
-    margin-top: 2em;
-}
-#index > a:hover, li > a:hover, a:hover > h2, a.link:hover
+#index > a:hover, li > a:hover, a:hover > h2
 {
     text-decoration: underline;
 }
 
+img {
+    border: 5px solid gray;
+}
 
 @media (prefers-color-scheme: dark) {
     html { filter: invert(100%); }
     img  { filter: invert(100%); }
-    img, li > a, #index > a, a.link { 
+    li > a, #index > a { 
         color: lightblue;
         filter: invert(100%); 
     }
@@ -71,18 +54,14 @@ a.link {
 }
 
 * {
-    /* padding: 0; */
     font-family: sans-serif;
     color: var(--tc);
     box-sizing: border-box;
 }
 
 body {
-    /* font-size: var(--fs-main); */
     background-color: var(--bg);
     padding-bottom: 2.1em;
-    /* for grayscale testing */
-    /* filter: grayscale(100%); */
 }
 
 img {
@@ -91,32 +70,11 @@ img {
 
 body.object img {
     zoom: 50%;
-    /* object-fit: contain; */
 }
 body.category img {
     zoom: 25%;
-    /* object-fit: contain; */
 }
-
-div.full { 
-    margin-top: 1em;
-}
-/* div.top {
-    position:sticky;
-    top: 0;
-    left: 0;
-    padding-bottom: 1em; 
-    background-color: var(--bg);
-} */
 
 p {
     line-height: 0.5em;
 }
-
-@media (orientation: landscape) {
-}
-
-@media (orientation: portrait) {
-    * { font-stretch: condensed; }
-}
-

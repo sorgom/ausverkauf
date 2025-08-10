@@ -159,7 +159,7 @@ class Gen(object):
             desc = f'{name}: {num}{cdif}'
             cont.append(f'<li><a href={cat}.html>{desc}</a></li>')
         cont.append('</ul>')
-        self.mkHtml('index', self.head, 'index', cont)
+        self.mkHtml('index', self.head, 'main', cont)
         if self.genStats:
             with open(self.statsFile, 'w') as fh:
                 json.dump(nStats, fh)
