@@ -41,6 +41,7 @@ li > a {
 
 img {
     border: 5px solid gray;
+    border-radius: 1em;
 }
 
 @media (prefers-color-scheme: dark) {

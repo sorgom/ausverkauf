@@ -4,9 +4,10 @@ Generiere Verkaufs-Website
 Aufruf: this script [Optionen]
 Optionen:
     -s  Statistic aktualisieren
-    -m  <pixel> maximale Bildgröße
+    -m  <pixel> maximale Bildausdehnung
         Default: 1000
     -g  generiere Bilder neu
+    -M  <megapixel> Bildgröße in Megapixel
     -h  diese Hilfe
 """
 from os import makedirs, chdir
@@ -16,24 +17,28 @@ from glob import glob
 from html import escape as esc
 from datetime import datetime
 from PIL import Image, ExifTags
+from math import sqrt
 
 import locale
 locale.setlocale(locale.LC_ALL, 'de_DE')
 
 class Gen(object):
-    def __init__(self, imgSize=None, genImgs=False, genStats=False):
+    def __init__(self, imgSize=None, imgMP=None, genStats=False):
         chdir(dirname(__file__))
         with open('template.html') as fh:
             self.template = fh.read()
             fh.close()
         self.statsFile = 'stats.json'
         self.imprint = 'Kein Impressum vorhanden.'
-        self.imgSize = 1000
-        self.genImgs = genImgs
+        self.imgSize = int(imgSize) if imgSize else None
+        self.imgPix  = float(imgMP) * 1000000 if imgMP else None
         self.genStats = genStats
-        if imgSize is not None:
-            self.imgSize = int(imgSize)
-            self.genImgs = True
+        self.isDir = 'img'
+        self.itDir = 'site/img'
+        if not isdir(self.isDir):
+            self.imgSize = None
+            self.imgPix  = None
+        elif not isdir(self.itDir): makedirs(self.itDir)
 
     def mkHtml(self, trg, ttl, bodyClass, content):
         with open(f'site/{trg}.html', 'w') as fh:
@@ -58,13 +63,9 @@ class Gen(object):
             print(f"EXIF rotation skipped: {e}")
         return img
 
-    def genImages(self):
-        print('gen images')
-        sDir = 'img'
-        tDir = 'site/img'
-        if not isdir(sDir): return
-        if not isdir(tDir): makedirs(tDir)
-        for file in glob(f'{sDir}/*'):
+    def genImagesSize(self):
+        print(f'gen images - size: {self.imgSize}')
+        for file in glob(f'{self.isDir}/*'):
             try:
                 with Image.open(file) as img:
                     img = self.auto_rotate(img)
@@ -73,7 +74,26 @@ class Gen(object):
                     print('->', file)
             except Exception as e:
                 print(f'failed: {file} ({e})')
-         
+
+    def genImagesPix(self):
+        print(f'gen images - pix: {self.imgPix}')
+        for file in glob(f'{self.isDir}/*'):
+            try:
+                with Image.open(file) as img:
+                    img = self.auto_rotate(img)
+                    w = img.width
+                    h = img.height
+                    r =  sqrt(self.imgPix / (w * h))
+                    print(w, h, 'ratio:', r)
+                    nw = int(r * w + 0.5)
+                    nh = int(r * h + 0.5)
+                    ni = img.resize((nw, nh))
+                    ni.save(f'site/{file}')
+                    print('->', nw, nh, nw * nh)
+                    print('->', file)
+            except Exception as e:
+                print(f'failed: {file} ({e})')
+
     def scanImages(self):
         chdir('site')
         self.images = {}
@@ -187,7 +207,8 @@ class Gen(object):
         self.mkHtml('impressum', 'Impressum', 'imprint', [self.para(self.imprint)])
 
     def run(self):
-        if self.genImgs: self.genImages()
+        if self.imgSize: self.genImagesSize()
+        elif self.imgPix: self.genImagesPix()
         self.scanImages()
         self.parseContent()
         self.genIndex()
@@ -200,7 +221,7 @@ if __name__ == "__main__":
     opts, args = docopts(__doc__)
     gen = Gen(
         imgSize  = opts.get('m'),
-        genImgs  = opts.get('g'),
+        imgMP    = opts.get('M'),
         genStats = opts.get('s')
     )
     gen.run()

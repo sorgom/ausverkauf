@@ -1,6 +1,7 @@
 *.jpg
 *.jpeg
 img
+aphoto
 site
 !site/*.css
 content.txt
