@@ -37,7 +37,7 @@ class Data(object):
     
     @staticmethod
     def para(txt:str):
-        return Data.sub(r'^', '<p>', Data.sub(r'$', '</p>', re.sub(r'\*(\S.*?\S)\*', r'<b>\1</b>', esc(txt.strip()))))
+        return Data.sub(r'^', '<p>', Data.sub(r'$', '</p>', re.sub(r'\*(\S.*?\S)\*', r'<b>\1</b>', txt.strip())))
     
     def __str__(self):
         return '\n'.join([self.id, self.title, self.content, ', '.join(self.imgs)])
@@ -219,7 +219,7 @@ class Gen(object):
     
     @staticmethod
     def link(name, desc):
-        return f'<a href={name}.html>[ {desc} ]</a>'
+        return f'<a href={name}.html>{desc}</a>'
     
     def run(self):
         if self.imgSize: self.genImagesSize()

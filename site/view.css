@@ -26,8 +26,15 @@ h2 {
 }
 
 #index > a {
-    color: blue;
-    font-size: 120%;
+    display: inline-block;
+    padding: 0.3em;
+    background-color: lightgray;
+    border-radius: 0.2em;
+    margin-bottom: 0.2em;
+    min-width: 6em;
+    text-align: center;
+    /* color: blue;
+    font-size: 120%; */
 }
 
 #index > a:hover, a:hover > h2
@@ -49,11 +56,6 @@ a > img {
 @media (prefers-color-scheme: dark) {
     html { filter: invert(100%); }
     img  { filter: invert(100%); }
-    li > a, #index > a { 
-        color: lightblue;
-        filter: invert(100%); 
-    }
-    
 }
 
 * {
