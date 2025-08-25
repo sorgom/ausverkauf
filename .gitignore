@@ -4,7 +4,7 @@ img
 aphoto
 site
 !site/*.css
-content.txt
+*.txt
 *.json
 
 tmp_*

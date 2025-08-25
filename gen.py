@@ -10,9 +10,9 @@ Optionen:
     -M  <megapixel> Bildgröße in Megapixel
     -h  diese Hilfe
 """
-from os import makedirs, chdir
-from os.path import exists, dirname, basename, isdir
-import json, re
+from os import makedirs, chdir, remove
+from os.path import dirname, isdir
+import re
 from glob import glob
 from html import escape as esc
 from datetime import datetime
@@ -22,9 +22,28 @@ from math import sqrt
 import locale
 locale.setlocale(locale.LC_ALL, 'de_DE')
 
+class Data(object):
+    def __init__(self, id, title, content, para=True):
+        self.id = id
+        self.title = title
+        self.content = self.para(content) if para else content
+        self.imgs = []
+
+    @staticmethod
+    def sub(rx, repl, txt:str):
+        return re.sub(rx, repl, txt, flags=re.M)    
+    
+    @staticmethod
+    def para(txt:str):
+        return Data.sub(r'^', '<p>', Data.sub(r'$', '</p>', re.sub(r'\*(\S.*?\S)\*', r'<b>\1</b>', esc(txt.strip()))))
+    
+    def __str__(self):
+        return '\n'.join([self.id, self.title, self.content, ', '.join(self.imgs)])
+
 class Gen(object):
     def __init__(self, imgSize=None, imgMP=None, genStats=False):
-        chdir(dirname(__file__))
+        self.dir = dirname(__file__)
+        self.back()
         with open('template.html') as fh:
             self.template = fh.read()
             fh.close()
@@ -39,14 +58,93 @@ class Gen(object):
             self.imgSize = None
             self.imgPix  = None
         elif not isdir(self.itDir): makedirs(self.itDir)
+        
+        self.articles, _ = self.tokenizeF('articles.txt')
+        self.categories, _ = self.tokenizeF('categories.txt', False)
+        for d in self.categories: d.content = d.content.split()
+        self.rxImg = re.compile(r'\b(' + '|'.join([d.id for d in self.articles]) + r')_\d{1,2}\.\w+')
+
+        cont, impr = self.tokenizeF('formal.txt')
+        self.imprint = Data.para(impr)
+        self.title, desc = cont[0].title, cont[0].content
+        self.template = self.template.replace('#DESC', desc)
+
+
+    def assignImages(self):
+        iMap = { a.id : a for a in self.articles }
+        for (id, img) in self.imgList('site'):
+            iMap[id].imgs.append(self.img(img))
+        self.articles = [d for d in self.articles if d.imgs]
+        self.aMap = { a.id : a for a in self.articles }
+        for c in self.categories:
+            c.content = [id for id in c.content if self.aMap.get(id)]
+        self.categories = [c for c in self.categories if c.content]
+
+    def genTemplateIndex(self):
+        index = [self.link('index', 'Start')]
+        for c in self.categories:
+            index.append(self.link(c.id, c.title))
+        index.append(self.link('impressum', 'Impressum'))
+        self.template = self.template.replace('#INDEX', ' '.join(index))
+
+    @staticmethod
+    def articleLink(a:Data):
+        return (
+            f'<a href={a.id}.html>',
+            f'<h2>{a.title}</h2>',
+            a.imgs[0],
+            '</a>'
+        )
+
+    def genImprint(self):
+        self.mkHtml('impressum', 'Impressum', 'imprint', [self.imprint])
+
+    def genIndex(self):
+        cont = []
+        for a in self.articles:
+            cont.extend(self.articleLink(a))
+        self.mkHtml('index', self.title, 'main', cont)
+
+    def genCategories(self):
+        for c in self.categories:
+            cont = []
+            for id in c.content:
+                cont.extend(self.articleLink(self.aMap[id]))
+            self.mkHtml(c.id, c.title, 'category', cont)
+
+    def genArticles(self):
+        for a in self.articles:
+            self.mkHtml(a.id, a.title, 'object', [a.content, *a.imgs])
 
     def mkHtml(self, trg, ttl, bodyClass, content):
         with open(f'site/{trg}.html', 'w') as fh:
             fh.write(self.template.replace('#TITLE', ttl).replace('#BODYCLASS', bodyClass).replace('#CONTENT', '\n'.join(content)))
             fh.close()
 
+    def back(self):
+        chdir(self.dir)
+
+
+    def imgList(self, dir=None):
+        if dir: chdir(dir)
+        res = []
+        for f in glob('img/*'):
+            mo = self.rxImg.search(f)
+            if mo:
+                res.append((mo.group(1), f))
+        self.back()
+        return res
+
     @staticmethod
-    def auto_rotate(img):
+    def rmImages():
+        for f in glob('site/img/*'): remove(f)
+
+    @staticmethod
+    def rmHtml():
+        for f in glob('site/*.html'): remove(f)
+
+    @staticmethod
+    def exifRotate(img):
         try:
             exif = img._getexif()
             if exif:
@@ -65,10 +163,11 @@ class Gen(object):
 
     def genImagesSize(self):
         print(f'gen images - size: {self.imgSize}')
-        for file in glob(f'{self.isDir}/*'):
+        self.rmImages()
+        for _, file in self.imgList():
             try:
                 with Image.open(file) as img:
-                    img = self.auto_rotate(img)
+                    img = self.exifRotate(img)
                     img.thumbnail((self.imgSize, self.imgSize))
                     img.save(f'site/{file}')
                     print('->', file)
@@ -77,151 +176,66 @@ class Gen(object):
 
     def genImagesPix(self):
         print(f'gen images - pix: {self.imgPix}')
-        for file in glob(f'{self.isDir}/*'):
+        self.rmImages()
+        for _, file in self.imgList():
             try:
                 with Image.open(file) as img:
-                    img = self.auto_rotate(img)
+                    img = self.exifRotate(img)
                     w = img.width
                     h = img.height
                     r =  sqrt(self.imgPix / (w * h))
-                    print(w, h, 'ratio:', r)
                     nw = int(r * w + 0.5)
                     nh = int(r * h + 0.5)
                     ni = img.resize((nw, nh))
                     ni.save(f'site/{file}')
-                    print('->', nw, nh, nw * nh)
                     print('->', file)
             except Exception as e:
                 print(f'failed: {file} ({e})')
 
-    def scanImages(self):
-        chdir('site')
-        self.images = {}
-        rx = re.compile(r'^(.*)_[^_.]*?\.')
-        for file in glob('img/*'):
-            mo = rx.search(basename(file))
-            if not mo: continue
-            self.images.setdefault(mo.group(1), []).append(self.img(file))
-        chdir('..')
-
     @staticmethod
-    def splitEx(txt, rCatch:str):
-        rSplit = rCatch.replace('(', '').replace(')', '')
-        heads = re.findall(rCatch, txt, flags=re.M)
-        conts = [t.strip() for t in re.split(rSplit, txt, flags=re.M)]
+    def tokenize(txt:str, para=True):
+        rxF = re.compile(r'^# *(\w+) *: *(.*)\n+', re.M)
+        rxS = re.compile(r'^# *\w+ *: *.*\n+', re.M)
+        rxC = re.compile(r'^ *| *$', re.M)
+        txt = esc(rxC.sub('', txt.strip().replace("\t", ' ')))
+        heads = rxF.findall(txt)
+        conts = [t.strip() for t in rxS.split(txt)]
         rem = conts.pop(0)
-        return heads, conts, rem
+        res = []
+        for n, (id, title) in enumerate(heads):
+            res.append(Data(id, title, conts[n], para=para))
+        return res, rem
     
     @staticmethod
-    def sub(rx, repl, txt:str):
-        return re.sub(rx, repl, txt, flags=re.M)    
-    
-    @staticmethod
-    def clean(txt:str):
-        return Gen.sub(r'^ *| *$', '', txt.strip().replace("\t", ' '))  
-
-    @staticmethod
-    def para(txt:str):
-        return Gen.sub(r'^', '<p>', Gen.sub(r'$', '</p>', re.sub(r'\*(\S.*?\S)\*', r'<b>\1</b>', txt.strip())))
+    def tokenizeF(file, para=True):
+        with open(file, 'r') as fh:
+            return Gen.tokenize(fh.read(), para=para)
 
     @staticmethod
     def img(src):
-        return f'<img src={src}>'
+        return f'<img src={src.replace('\\', '/')}>'
     
     @staticmethod
     def link(name, desc):
         return f'<a href={name}.html>[ {desc} ]</a>'
     
-    def parseContent(self):
-        with open('content.txt', 'r') as fh:
-            #   separate into categories and chapters
-            txt = Gen.clean(fh.read())
-            rxImp = re.compile(r'^>{3,}\n(.*)', re.M | re.S)
-            mo = rxImp.search(txt)
-            if mo:
-                self.imprint = mo.group(1)
-                txt = rxImp.sub('', txt)
-            self.cats, conts, head = Gen.splitEx(esc(txt), r'^[@] *(\w+) *: *(.*)\n')
-            a, b, _ = Gen.splitEx(head, r'^# *(.*)')
-            self.head, self.desc = (a.pop(0), Gen.para(b.pop(0)))
-            fh.close()
-        self.chaps = {}
-        for n, cont in enumerate(conts):
-            heads, descs, _ = Gen.splitEx(cont, r'^# *(\w+) *: *(.*)\n')
-            items = []
-            for m, [item, name] in enumerate(heads):
-                if self.images.get(item):
-                    items.append([item, name, Gen.para(descs[m])])
-            if len(items) > 0: 
-                self.chaps[self.cats[n][0]] = items
-        index = [self.link('index', 'Start')]
-        for cat, name in self.cats:
-            if self.chaps.get(cat):
-                index.append(self.link(cat, name))
-        index.append(self.link('impressum', 'Impressum'))
-        self.template = self.template.replace('#DESC', self.desc).replace('#INDEX', ' '.join(index))
-
-    def genIndex(self):
-        stats = {}
-        if exists(self.statsFile):
-            with open(self.statsFile) as fh:
-                stats = json.load(fh)
-            fh.close()
-        cont = [f'<p>Letzte Aktualisierung: {datetime.now().strftime("%A, %d. %B %Y")}</p>', '<ul>']
-        nStats = {}
-        for cat, name in self.cats:
-            num = len(self.chaps.get(cat, []))
-            nStats[cat] = num
-            cdif = ''
-            last = stats.get(cat)
-            if last is not None and num != last:
-                cdif = f' ({num - last:+d})'
-            desc = f'{name}: {num}{cdif}'
-            cont.append(f'<li><a href={cat}.html>{desc}</a></li>')
-        cont.append('</ul>')
-        self.mkHtml('index', self.head, 'main', cont)
-        if self.genStats:
-            with open(self.statsFile, 'w') as fh:
-                json.dump(nStats, fh)
-                fh.close()
-
-    def genChapters(self):
-        for cat, ttl in self.cats:
-            items = self.chaps.get(cat)
-            if not items: continue
-            cont = []
-            for item, name, desc in items:
-                imgs = self.images.get(item)
-                if not imgs: continue
-                cont.extend((
-                    f'<a href={item}.html>',
-                    f'<h2>{name}</h2>',
-                    imgs[0],
-                    '</a>'
-                ))
-                self.mkHtml(item, name, 'object', [desc, *imgs])     
-
-            self.mkHtml(cat, ttl, 'category', cont)
-
-    def genImprint(self):
-        self.mkHtml('impressum', 'Impressum', 'imprint', [self.para(self.imprint)])
-
     def run(self):
         if self.imgSize: self.genImagesSize()
         elif self.imgPix: self.genImagesPix()
-        self.scanImages()
-        self.parseContent()
-        self.genIndex()
-        self.genChapters()
+        self.rmHtml()
+        self.assignImages()
+        self.genTemplateIndex()
         self.genImprint()
+        self.genIndex()
+        self.genCategories()
+        self.genArticles()
 
 if __name__ == "__main__":
     import sompy
     from docopts import docopts
     opts, args = docopts(__doc__)
-    gen = Gen(
+    Gen(
         imgSize  = opts.get('m'),
         imgMP    = opts.get('M'),
         genStats = opts.get('s')
-    )
-    gen.run()
+    ).run()

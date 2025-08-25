@@ -29,19 +29,21 @@ h2 {
     color: blue;
     font-size: 120%;
 }
-li > a {
-    color: blue;
-    font-size: 150%;
-    line-height: 150%;
-}
-#index > a:hover, li > a:hover, a:hover > h2
+
+#index > a:hover, a:hover > h2
 {
     text-decoration: underline;
 }
 
 img {
+    margin-bottom: 0.5em;
+    zoom: 50%;
     border: 5px solid gray;
     border-radius: 1em;
+}
+
+a > img {
+    zoom: 25%;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -65,16 +67,6 @@ body {
     padding-bottom: 2.1em;
 }
 
-img {
-    margin-bottom: 0.5em;
-}
-
-body.object img {
-    zoom: 50%;
-}
-body.category img {
-    zoom: 25%;
-}
 
 p {
     line-height: 0.5em;
