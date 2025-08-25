@@ -3,11 +3,13 @@ Generiere Verkaufs-Website
 
 Aufruf: this script [Optionen]
 Optionen:
-    -s  Statistic aktualisieren
     -m  <pixel> maximale Bildausdehnung
         Default: 1000
     -g  generiere Bilder neu
     -M  <megapixel> Bildgröße in Megapixel
+    -q  <image quality>
+        recommended: 25 .. 75
+        default: 50
     -h  diese Hilfe
 """
 from os import makedirs, chdir, remove
@@ -41,7 +43,7 @@ class Data(object):
         return '\n'.join([self.id, self.title, self.content, ', '.join(self.imgs)])
 
 class Gen(object):
-    def __init__(self, imgSize=None, imgMP=None, genStats=False):
+    def __init__(self, imgSize=None, imgMP=None, quality=None):
         self.dir = dirname(__file__)
         self.back()
         with open('template.html') as fh:
@@ -51,7 +53,7 @@ class Gen(object):
         self.imprint = 'Kein Impressum vorhanden.'
         self.imgSize = int(imgSize) if imgSize else None
         self.imgPix  = float(imgMP) * 1000000 if imgMP else None
-        self.genStats = genStats
+        self.quality = int(quality) if quality else 50
         self.isDir = 'img'
         self.itDir = 'site/img'
         if not isdir(self.isDir):
@@ -169,7 +171,7 @@ class Gen(object):
                 with Image.open(file) as img:
                     img = self.exifRotate(img)
                     img.thumbnail((self.imgSize, self.imgSize))
-                    img.save(f'site/{file}')
+                    img.save(f'site/{file}', quality=self.quality)
                     print('->', file)
             except Exception as e:
                 print(f'failed: {file} ({e})')
@@ -187,7 +189,7 @@ class Gen(object):
                     nw = int(r * w + 0.5)
                     nh = int(r * h + 0.5)
                     ni = img.resize((nw, nh))
-                    ni.save(f'site/{file}')
+                    ni.save(f'site/{file}', quality=self.quality)
                     print('->', file)
             except Exception as e:
                 print(f'failed: {file} ({e})')
@@ -235,7 +237,7 @@ if __name__ == "__main__":
     from docopts import docopts
     opts, args = docopts(__doc__)
     Gen(
-        imgSize  = opts.get('m'),
-        imgMP    = opts.get('M'),
-        genStats = opts.get('s')
+        imgSize = opts.get('m'),
+        imgMP   = opts.get('M'),
+        quality = opts.get('q')
     ).run()
