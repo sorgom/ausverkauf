@@ -2,8 +2,7 @@
 *.jpeg
 img
 aphoto
-site
-!site/*.css
+site/*.html
 *.txt
 *.json
 
