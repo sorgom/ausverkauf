@@ -6,19 +6,18 @@ Optionen:
     -m  <pixel> generiere Bilder mit maximaler Bildausdehnung
         Default: 1000
     -M  <megapixel> generiere Bilder mit Bildgröße in Megapixel
-    -B  generiere Bilder wie letztes Mal
-        (nur neue)
     -q  <image quality>
         recommended: 25 .. 75
         default: 50
+    -r  alte Bilder löschen
     -h  diese Hilfe
 """
 from os import makedirs, chdir, remove
-from os.path import dirname, isdir, exists
+from os.path import dirname, isdir, exists, getmtime
 import re, json
 from glob import glob
 from html import escape as esc
-from datetime import datetime
+# from datetime import datetime
 from PIL import Image, ExifTags
 from math import sqrt
 
@@ -44,7 +43,7 @@ class Data(object):
         return '\n'.join([self.id, self.title, self.content, ', '.join(self.imgs)])
 
 class Gen(object):
-    def __init__(self, imgSize=None, imgMP=None, quality=None, reGenImages=False):
+    def __init__(self, imgSize=None, imgMP=None, quality=None, rm=False):
         self.dir = dirname(__file__)
         self.back()
         with open('template.html') as fh:
@@ -53,9 +52,9 @@ class Gen(object):
         self.statsFile = 'stats.json'
         self.imprint = 'Kein Impressum vorhanden.'
         self.imgSize = int(imgSize) if imgSize else None
-        self.imgPix  = float(imgMP) * 1000000 if imgMP else None
+        self.imgPix  = float(imgMP) if imgMP else None
         self.quality = int(quality) if quality else 50
-        self.reGenImages = reGenImages
+        self.imgAuto = False
         self.imgFile = 'img.json'
         self.isDir = 'img'
         self.itDir = 'site/img'
@@ -63,7 +62,8 @@ class Gen(object):
             self.imgSize = None
             self.imgPix  = None
         elif not isdir(self.itDir): makedirs(self.itDir)
-        
+        if rm: self.rmImages()
+
         self.articles = self.tokenizeF('articles.txt')
         self.categories = self.tokenizeF('categories.txt', False)
         for d in self.categories: d.content = d.content.split()
@@ -72,7 +72,7 @@ class Gen(object):
         cont = self.tokenizeF('formal.txt')
         tMap = self.tokens2dict(self.tokenizeF('formal.txt'))
         title, txt = tMap['imprint']
-        self.mkHtml('impressum', title, 'imprint', [txt])
+        self.mkHtml('impressum', title, [txt])
         _, txt = tMap['heading']
         self.template = self.template.replace('#DESC', txt)
         self.title, self.intro = tMap['intro']
@@ -108,22 +108,22 @@ class Gen(object):
         cont = [self.intro]
         for a in self.articles:
             cont.extend(self.articleLink(a))
-        self.mkHtml('index', self.title, 'main', cont)
+        self.mkHtml('index', self.title, cont)
 
     def genCategories(self):
         for c in self.categories:
             cont = []
             for id in c.content:
                 cont.extend(self.articleLink(self.aMap[id]))
-            self.mkHtml(c.id, c.title, 'category', cont)
+            self.mkHtml(c.id, c.title, cont)
 
     def genArticles(self):
         for a in self.articles:
-            self.mkHtml(a.id, a.title, 'object', [a.content, *a.imgs])
+            self.mkHtml(a.id, a.title, [a.content, *a.imgs])
 
-    def mkHtml(self, trg, ttl, bodyClass, content):
+    def mkHtml(self, trg, ttl, content):
         with open(f'site/{trg}.html', 'w') as fh:
-            fh.write(self.template.replace('#TITLE', ttl).replace('#BODYCLASS', bodyClass).replace('#CONTENT', '\n'.join(content)))
+            fh.write(self.template.replace('#TITLE', ttl).replace('#CONTENT', '\n'.join(content)))
             fh.close()
 
     def back(self):
@@ -167,54 +167,65 @@ class Gen(object):
         return img
 
     def genImagesSize(self):
-        print(f'gen images - size: {self.imgSize}')
-        self.rmImages()
-        for _, file in self.imgList():
+        print('gen images -m', self.imgSize, '-q', self.quality)
+        for _, src in self.imgList():
+            trg = self.imgTrg(src)
+            if not trg: continue
             try:
-                with Image.open(file) as img:
+                with Image.open(src) as img:
                     img = self.exifRotate(img)
                     img.thumbnail((self.imgSize, self.imgSize))
-                    img.save(f'site/{file}', quality=self.quality)
-                    print('->', file)
+                    img.save(trg, quality=self.quality)
+                    print('->', src)
             except Exception as e:
-                print(f'failed: {file} ({e})')
+                print(f'failed: {src} ({e})')
         self.saveImgRun('size', self.imgSize, self.quality)
 
     def genImagesPix(self):
-        print(f'gen images - pix: {self.imgPix}')
-        self.rmImages()
-        for _, file in self.imgList():
+        print('gen images -M', self.imgPix, '-q', self.quality)
+        pix = self.imgPix * 1000000
+        for _, src in self.imgList():
+            trg = self.imgTrg(src)
+            if not trg: continue
             try:
-                with Image.open(file) as img:
+                with Image.open(src) as img:
                     img = self.exifRotate(img)
                     w = img.width
                     h = img.height
-                    r =  sqrt(self.imgPix / (w * h))
+                    r =  sqrt(pix / (w * h))
                     nw = int(r * w + 0.5)
                     nh = int(r * h + 0.5)
                     ni = img.resize((nw, nh))
-                    ni.save(f'site/{file}', quality=self.quality)
-                    print('->', file)
+                    ni.save(trg, quality=self.quality)
+                    print('->', src)
             except Exception as e:
-                print(f'failed: {file} ({e})')
+                print(f'failed: {src} ({e})')
         self.saveImgRun('pix', self.imgPix, self.quality)
+
+    def genImagesAuto(self):
+        if exists(self.imgFile):
+            with open(self.imgFile, 'r') as fh:
+                data = json.load(fh)
+                self.quality = data['quality']
+                self.imgAuto = True
+                if data['type'] == 'pix':
+                    self.imgPix = data['value']
+                    self.genImagesPix()
+                elif data['type'] == 'size':
+                    self.imgSize = data['value']
+                    self.genImagesSize()
+
+    def imgTrg(self, src):
+        trg = f'site/{src}'
+        if self.imgAuto and exists(trg) and getmtime(trg) > getmtime(src):
+            return None
+        return trg 
 
     def saveImgRun(self, type:str, value:int, quality:int):
         with open(self.imgFile, 'w') as fh:
             data = { 'type': type, 'value': value, 'quality': quality}
             json.dump(data, fh)
     
-    def loadImgRun(self):
-        if exists(self.imgFile):
-            with open(self.imgFile, 'r') as fh:
-                data = json.load(fh)
-                if data['type'] == 'pix':
-                    self.imgPix = data['value']
-                elif data['type'] == 'size':
-                    self.imgSize = data['value']
-                self.quality = data['quality']
-        else: self.reGenImages = False
-
     @staticmethod
     def tokenize(txt:str, para=True):
         rxF = re.compile(r'^# *(\w+) *: *(.*)\n+', re.M)
@@ -249,6 +260,7 @@ class Gen(object):
     def run(self):
         if self.imgSize: self.genImagesSize()
         elif self.imgPix: self.genImagesPix()
+        else: self.genImagesAuto()
         self.rmHtml()
         self.assignImages()
         self.genTemplateIndex()
@@ -263,5 +275,6 @@ if __name__ == "__main__":
     Gen(
         imgSize = opts.get('m'),
         imgMP   = opts.get('M'),
-        quality = opts.get('q')
+        quality = opts.get('q'),
+        rm      = opts.get('r')
     ).run()
