@@ -19,8 +19,9 @@ from glob import glob
 from html import escape as esc
 # from datetime import datetime
 from PIL import Image, ExifTags
+from pillow_heif import register_heif_opener
+register_heif_opener()
 from math import sqrt
-
 import locale
 locale.setlocale(locale.LC_ALL, 'de_DE')
 
@@ -91,7 +92,7 @@ class Gen(object):
         index = [self.link('index', 'Start')]
         for c in self.categories:
             index.append(self.link(c.id, c.title))
-        index.append(self.link('impressum', 'Impressum'))
+        # index.append(self.link('impressum', 'Impressum'))
         self.template = self.template.replace('#INDEX', ' '.join(index))
 
     @staticmethod
@@ -197,7 +198,7 @@ class Gen(object):
                     nh = int(r * h + 0.5)
                     ni = img.resize((nw, nh))
                     ni.save(trg, quality=self.quality)
-                    print('->', src)
+                    print('->', trg)
             except Exception as e:
                 print(f'failed: {src} ({e})')
         self.saveImgRun('pix', self.imgPix, self.quality)
@@ -216,7 +217,7 @@ class Gen(object):
                     self.genImagesSize()
 
     def imgTrg(self, src):
-        trg = f'site/{src}'
+        trg = re.sub(r'\.\w+$', '.jpg', f'site/{src}')
         if self.imgAuto and exists(trg) and getmtime(trg) > getmtime(src):
             return None
         return trg 
