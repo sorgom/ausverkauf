@@ -63,7 +63,9 @@ class Gen(object):
             self.imgSize = None
             self.imgPix  = None
         elif not isdir(self.itDir): makedirs(self.itDir)
-        if rm: self.rmImages()
+        if rm: 
+            self.rmHtml()
+            self.rmImages()
 
         self.articles = self.tokenizeF('articles.txt')
         self.categories = self.tokenizeF('categories.txt', False)
@@ -101,9 +103,9 @@ class Gen(object):
             f'<a href={a.id}.html>',
             f'<h2>{a.title}</h2>',
             a.imgs[0],
+            '<p>weitere Informationen ...</p>',
             '</a>'
         )
-
 
     def genIndex(self):
         cont = [self.intro]
@@ -122,14 +124,19 @@ class Gen(object):
         for a in self.articles:
             self.mkHtml(a.id, a.title, [a.content, *a.imgs])
 
-    def mkHtml(self, trg, ttl, content):
-        with open(f'site/{trg}.html', 'w') as fh:
-            fh.write(self.template.replace('#TITLE', ttl).replace('#CONTENT', '\n'.join(content)))
+    def mkHtml(self, name, ttl, content):
+        trg = f'site/{name}.html'
+        txt = self.template.replace('#TITLE', ttl).replace('#CONTENT', '\n'.join(content))
+        if exists(trg):
+            with open(trg, 'r') as fh:
+                if fh.read() == txt: return
+        with open(trg, 'w') as fh:
+            fh.write(txt)
             fh.close()
+            print('->', trg)
 
     def back(self):
         chdir(self.dir)
-
 
     def imgList(self, dir=None):
         if dir: chdir(dir)
@@ -262,7 +269,6 @@ class Gen(object):
         if self.imgSize: self.genImagesSize()
         elif self.imgPix: self.genImagesPix()
         else: self.genImagesAuto()
-        self.rmHtml()
         self.assignImages()
         self.genTemplateIndex()
         self.genIndex()

@@ -18,28 +18,32 @@ html {
 
 a {
     text-decoration: none;
+    display: block;
 }
 
 h2 {
-    border-top: 1px solid var(--tc);
+    /* border-top: 1px solid var(--tc); */
     padding-top: 0.2em;
 }
 
+#index > a, a > h2 {
+    padding: 0.3em;
+    background-color: #AAA;
+    border-radius: 0.2em;
+}
 #index > a {
     display: inline-block;
-    padding: 0.3em;
-    background-color: lightgray;
-    border-radius: 0.2em;
-    margin-bottom: 0.2em;
     min-width: 6em;
     text-align: center;
+    margin-bottom: 5px;
     /* color: blue;
     font-size: 120%; */
 }
 
 #index > a:hover, a:hover > h2
 {
-    text-decoration: underline;
+    /* text-decoration: underline; */
+    color: white;
 }
 
 img {
