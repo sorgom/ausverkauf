@@ -10,6 +10,7 @@ Optionen:
         recommended: 25 .. 75
         default: 50
     -r  alte Bilder löschen
+    -s  nur Preis-Statistik ausgeben
     -h  diese Hilfe
 """
 from os import makedirs, chdir, remove
@@ -44,9 +45,12 @@ class Data(object):
         return '\n'.join([self.id, self.title, self.content, ', '.join(self.imgs)])
 
 class Gen(object):
-    def __init__(self, imgSize=None, imgMP=None, quality=None, rm=False):
+    def __init__(self, imgSize=None, imgMP=None, quality=None, rm=False, ps=None):
         self.dir = dirname(__file__)
         self.back()
+        if ps: 
+            self.genStats()
+            exit()
         with open('template.html') as fh:
             self.template = fh.read()
             fh.close()
@@ -70,7 +74,7 @@ class Gen(object):
         self.articles = self.tokenizeF('articles.txt')
         self.categories = self.tokenizeF('categories.txt', False)
         for d in self.categories: d.content = d.content.split()
-        self.rxImg = re.compile(r'\b(' + '|'.join([d.id for d in self.articles]) + r')_\d{1,3}\.\w+')
+        self.rxImg = re.compile(r'\b(' + '|'.join([d.id for d in self.articles]) + r')_[0-9a-zA-Z]{1,3}\.\w+')
 
         cont = self.tokenizeF('formal.txt')
         tMap = self.tokens2dict(self.tokenizeF('formal.txt'))
@@ -265,6 +269,16 @@ class Gen(object):
     def link(name, desc):
         return f'<a href={name}.html>{desc}</a>'
     
+    @staticmethod
+    def genStats():
+        with open('articles.txt', 'r') as fh:
+            prs = [int(n) for n in re.findall(r'(?:FP|VB) +(\d+),-', fh.read())]
+            print(f'{len(prs):6d} Preise')
+            print(f'{min(prs):6d} Euro kleinster')
+            print(f'{max(prs):6d} Euro größter')
+            print('-' * 30)
+            print(f'{sum(prs):6d} Euro gesamt')
+
     def run(self):
         if self.imgSize: self.genImagesSize()
         elif self.imgPix: self.genImagesPix()
@@ -283,5 +297,6 @@ if __name__ == "__main__":
         imgSize = opts.get('m'),
         imgMP   = opts.get('M'),
         quality = opts.get('q'),
-        rm      = opts.get('r')
+        rm      = opts.get('r'),
+        ps      = opts.get('s')
     ).run()
