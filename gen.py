@@ -70,7 +70,7 @@ class Gen(object):
         self.articles = self.tokenizeF('articles.txt')
         self.categories = self.tokenizeF('categories.txt', False)
         for d in self.categories: d.content = d.content.split()
-        self.rxImg = re.compile(r'\b(' + '|'.join([d.id for d in self.articles]) + r')_\d{1,2}\.\w+')
+        self.rxImg = re.compile(r'\b(' + '|'.join([d.id for d in self.articles]) + r')_\d{1,3}\.\w+')
 
         cont = self.tokenizeF('formal.txt')
         tMap = self.tokens2dict(self.tokenizeF('formal.txt'))
